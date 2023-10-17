@@ -1,0 +1,160 @@
+import pygame
+from pygame.locals import *
+
+import variables as VAR
+import time
+
+import random
+import string
+import os
+
+def Findfichier(target_file, start_path="."):
+    """Trouve de manière récursive le chemin complet du fichier cible."""
+    for root, dirs, files in os.walk(start_path):
+        if target_file in files:
+            return os.path.join(root, target_file)
+    return None
+        
+def Animation(_frequence, _nbImages):
+    return int((time.time()*_frequence) % _nbImages)
+    
+def jouer_sons(_fichier):
+    VAR.sons[_fichier].play()
+    
+def Charge_Musique(_fichier):  
+    if not VAR.music: return 
+    
+    pygame.mixer.music.load("musics/" + _fichier + ".mp3")
+    pygame.mixer.music.play()
+
+def Redimensionne_Image(img, w, h):
+    return pygame.transform.scale(img, (w, h))  
+
+def image_decoupe(img, x, y, dimx, dimy, dimxZ = -1, dimyZ = -1):
+    tmp = pygame.Surface((dimx, dimy),pygame.SRCALPHA,32)
+    tmp.blit(img, (0,0), (int(x) * dimx, int(y) * dimy, dimx, dimy))
+                        
+    # --- Colle le decors 
+    if dimxZ != -1 and dimyZ != -1:   
+        tmp = pygame.transform.scale(tmp, (dimxZ, dimyZ))
+    return tmp
+
+# -- image rempli de blanc, lorsque le joueur clignotte !    
+def Colorisation_Masque(_image_masque, _couleurRemplacement = (255,255,255,255)):
+    image = _image_masque.copy()
+    
+    for y in range(image.get_height()):
+        for x in range(image.get_width()):
+            couleur = image.get_at((x, y))
+            if not VAR.C_COLOR_TRANSPARENT == couleur:
+                image.set_at((x,y), _couleurRemplacement)   
+    return image
+
+def image_vide(dimx, dimy):
+    return pygame.Surface((dimx, dimy),pygame.SRCALPHA,32)
+
+
+    return tmp
+    
+def charger_images_zoom(_tag, _fichier, _zoom):
+    tmp = pygame.image.load("images/" + _fichier).convert_alpha() 
+    if _zoom > 1: tmp = pygame.transform.scale(tmp, (tmp.get_width() * _zoom, tmp.get_height() *_zoom))  
+    VAR.image[_tag] = tmp
+    return tmp
+
+def GenereMat2D(xDim, yDim, valeurDefaut):
+    return [[valeurDefaut for x in range(xDim)] for i in range(yDim)]
+
+def convert_seconds_to_time(seconds):
+    if seconds < 0: seconds = 0
+    minutes, seconds = divmod(seconds, 60)
+
+    return f"{minutes:02d}:{seconds:02d}"
+
+
+def Collision(objet1, objet2):
+    x1, y1, dx1, dy1 = objet1
+    x2, y2, dx2, dy2 = objet2
+    
+    if ((x2 >= x1 + dx1) 
+            or (x2 + dx2 <= x1) 
+            or (y2 >= y1 + dy1)
+            or (y2 + dy2 <= y1)):
+
+        return False
+    else:
+        return True
+
+def Collision2(objet1, objet2):
+    dx1 = dx2 = dy1 = dy2 = 1
+    x1, y1 = objet1
+    x2, y2 = objet2
+    
+    if ((x2 >= x1 + dx1) 
+            or (x2 + dx2 <= x1) 
+            or (y2 >= y1 + dy1)
+            or (y2 + dy2 <= y1)):
+
+        return False
+    else:
+        return True
+
+def CollisionHigh(objet1, objet2):
+    dx1 = dx2 = dy1 = dy2 = 0.5
+    x1, y1 = objet1
+    x2, y2 = objet2
+    
+    x1 += 0.25
+    y1 += 0.25
+    x2 += 0.25
+    y2 += 0.25
+    
+    if ((x2 >= x1 + dx1) 
+            or (x2 + dx2 <= x1) 
+            or (y2 >= y1 + dy1)
+            or (y2 + dy2 <= y1)):
+
+        return False
+    else:
+        return True
+
+def Detection_Collision_High(_class_objet, _element):
+    for objet in _class_objet.LISTE:
+        if not objet == _element:
+            if CollisionHigh((objet.x , objet.y), (_element.x, _element.y)): 
+                return objet
+    return None
+    
+def Detection_Collision(_class_objet, _element):
+    for objet in _class_objet.LISTE:
+        if not objet == _element:
+            if Collision2((objet.x , objet.y), (_element.x, _element.y)): 
+                return objet
+    return None
+        
+def ContientDans(objet, objet_conteneur):
+    xC, yC, dxC, dyC = objet_conteneur
+    x, y, dx, dy = objet
+    
+    return (xC < x < xC + dxC and xC < x + dx < xC + dxC and
+            yC < y < yC + dyC and yC < y + dy < yC + dyC)
+    
+LISTE_FONTS = {}
+def Init_Texte(_taille):
+    if not _taille in LISTE_FONTS:        
+        LISTE_FONTS[_taille] = pygame.font.SysFont('PressStart2P', _taille) 
+    
+def Image_Texte(_texte, _couleur, _taille):
+    Init_Texte(_taille) 
+       
+    image_texte = LISTE_FONTS[_taille].render(_texte, True, _couleur).convert_alpha()  
+    return image_texte
+
+
+def Position_Sur_Terrain(_x, _y):
+    return (_x >=0 and _x < VAR.nbColonnes and _y >=0 and _y < VAR.nbLignes)
+
+def generate_short_id(length=6):
+    characters = string.ascii_uppercase + string.digits
+    short_id = ''.join(random.choice(characters) for _ in range(length))
+    return short_id
